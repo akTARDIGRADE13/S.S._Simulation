@@ -21,6 +21,9 @@ public class Skipping_Stones_Simulation : MonoBehaviour
     //影響半径を標準入力から受け取る
     public float r_e;
 
+    //粒子の直径を標準入力から受け取る
+    public float diameter;
+
     //位置を保存するリスト,速度を保存するリスト,粒子数密度を保存するリストの定義
     public static List<Vector3> position_l = new List<Vector3>();
     public static List<Vector3> velocity_l = new List<Vector3>();
@@ -42,6 +45,17 @@ public class Skipping_Stones_Simulation : MonoBehaviour
 
     //壁内部粒子のインデックスを保存しておくリスト
     public static Dictionary<int, int> inner = new Dictionary<int, int>();
+
+    //グリッドに分割する空間の範囲
+    float x_begin = 0;
+    float x_end = 0;
+    float y_begin = 0;
+    float y_end = 0;
+    float z_begin = 0;
+    float z_end = 0;
+
+    //グリッド数の三乗根
+    int keisu = 40;
 
     public static int roop_cnt = 0;
 
@@ -123,10 +137,407 @@ public class Skipping_Stones_Simulation : MonoBehaviour
             float lu = 0f;
             for (int j = i + 1; j < n; j++)
             {
-                lu += L[i, j] * u[j];
+                lu += L[j, i] * u[j];
             }
             u[i] = y[i] - d[i] * lu;
         }
+    }
+
+    //粒子をグリッド振り分けるプログラム
+    void sort_gird(List<List<int>> grid_table, int[] index_table, List<Vector3> position, float x_begin, float x_end, float y_begin, float y_end, float z_begin, float z_end, float re, int n)
+    {
+        for (int i = 0; i < n; i++)
+        {
+            //粒子iの座標の取得
+            float x = position[i].x;
+            float y = position[i].y;
+            float z = position[i].z;
+            if (x < x_begin | x > x_end) Time.timeScale = 0;
+            if (y < y_begin | y > y_end) Time.timeScale = 0;
+            if (z < z_begin | z > z_end) Time.timeScale = 0;
+
+            //indexの計算
+            int x_i = (int)((x - x_begin) / re);
+            int y_i = (int)((y - y_begin) / re);
+            int z_i = (int)((z - z_begin) / re);
+            int index = x_i + ((int)((x_end - x_begin) / re) + 1) * y_i + ((int)((x_end - x_begin) / re) + 1) * ((int)((y_end - y_begin) / re) + 1) * z_i;
+
+            //それぞれのリストの値を更新
+            //Debug.Log(index + " " + x + " " + y + " " + z);
+            grid_table[index].Add(i);
+            index_table[i] = index;
+        }
+    }
+
+    //近傍粒子が含まれている可能性があるグリッドのindexを返す関数
+    List<int> search_grid(int i, int x, int y, int z)
+    {
+        List<int> ans = new List<int>();
+        bool flag1 = true, flag2 = true, flag3 = true, flag4 = true, flag5 = true, flag6 = true;
+        if (i % x == 0) flag1 = false;
+        if ((i + 1) % x == 0) flag2 = false;
+        if (i - x < 0) flag3 = false;
+        if (i + x > x * y * z - 1) flag4 = false;
+        if (i - x * y < 0) flag5 = false;
+        if (i + x * y > x * y * z - 1) flag6 = false;
+        ans.Add(i);
+        if (flag1)
+        {
+            ans.Add(i - 1);
+            if (flag3)
+            {
+                ans.Add(i - x);
+                ans.Add(i - x - 1);
+                if (flag5)
+                {
+                    ans.Add(i - x * y);
+                    ans.Add(i - x * y - x);
+                    ans.Add(i - x * y - 1);
+                    ans.Add(i - x * y - x - 1);
+                    if (flag2)
+                    {
+                        ans.Add(i + 1);
+                        ans.Add(i - x + 1);
+                        ans.Add(i - x * y + 1);
+                        ans.Add(i - x * y - x + 1);
+                        if (flag4)
+
+
+                        {
+                            ans.Add(i + x);
+                            ans.Add(i + x - 1);
+                            ans.Add(i + x + 1);
+                            ans.Add(i - x * y + x);
+                            ans.Add(i - x * y + x - 1);
+                            ans.Add(i - x * y + x + 1);
+                            if (flag6)
+                            {
+                                ans.Add(i + x * y);
+                                ans.Add(i + x * y - 1);
+                                ans.Add(i + x * y + 1);
+                                ans.Add(i + x * y - x);
+                                ans.Add(i + x * y - x - 1);
+                                ans.Add(i + x * y - x + 1);
+                                ans.Add(i + x * y + x);
+                                ans.Add(i + x * y + x - 1);
+                                ans.Add(i + x * y + x + 1);
+                            }
+                        }
+                        else
+                        {
+                            if (flag6)
+                            {
+                                ans.Add(i + x * y);
+                                ans.Add(i + x * y - 1);
+                                ans.Add(i + x * y + 1);
+                                ans.Add(i + x * y - x);
+                                ans.Add(i + x * y - x - 1);
+                                ans.Add(i + x * y - x + 1);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        if (flag4)
+                        {
+                            ans.Add(i + x);
+                            ans.Add(i + x - 1);
+                            ans.Add(i - x * y + x);
+                            ans.Add(i - x * y + x - 1);
+                            if (flag6)
+                            {
+                                ans.Add(i + x * y);
+                                ans.Add(i + x * y - 1);
+                                ans.Add(i + x * y - x);
+                                ans.Add(i + x * y - x - 1);
+                                ans.Add(i + x * y + x);
+                                ans.Add(i + x * y + x - 1);
+                            }
+                        }
+                        else
+                        {
+                            if (flag6)
+                            {
+                                ans.Add(i + x * y);
+                                ans.Add(i + x * y - 1);
+                                ans.Add(i + x * y - x);
+                                ans.Add(i + x * y - x - 1);
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    if (flag2)
+                    {
+                        ans.Add(i + 1);
+                        ans.Add(i - x + 1);
+                        if (flag4)
+                        {
+                            ans.Add(i + x);
+                            ans.Add(i + x - 1);
+                            ans.Add(i + x + 1);
+                            if (flag6)
+                            {
+                                ans.Add(i + x * y);
+                                ans.Add(i + x * y - 1);
+                                ans.Add(i + x * y + 1);
+                                ans.Add(i + x * y - x);
+                                ans.Add(i + x * y - x - 1);
+                                ans.Add(i + x * y - x + 1);
+                                ans.Add(i + x * y + x);
+                                ans.Add(i + x * y + x - 1);
+                                ans.Add(i + x * y + x + 1);
+                            }
+                        }
+                        else
+                        {
+                            if (flag6)
+                            {
+                                ans.Add(i + x * y);
+                                ans.Add(i + x * y - 1);
+                                ans.Add(i + x * y + 1);
+                                ans.Add(i + x * y - x);
+                                ans.Add(i + x * y - x - 1);
+                                ans.Add(i + x * y - x + 1);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        if (flag4)
+                        {
+                            ans.Add(i + x);
+                            ans.Add(i + x - 1);
+                            if (flag6)
+                            {
+                                ans.Add(i + x * y);
+                                ans.Add(i + x * y - 1);
+                                ans.Add(i + x * y - x);
+                                ans.Add(i + x * y - x - 1);
+                                ans.Add(i + x * y + x);
+                                ans.Add(i + x * y + x - 1);
+                            }
+                        }
+                        else
+                        {
+                            if (flag6)
+                            {
+                                ans.Add(i + x * y);
+                                ans.Add(i + x * y - 1);
+                                ans.Add(i + x * y - x);
+                                ans.Add(i + x * y - x - 1);
+                            }
+                        }
+                    }
+                }
+            }
+            else
+            {
+                if (flag5)
+                {
+                    ans.Add(i - x * y);
+                    ans.Add(i - x * y - 1);
+                    if (flag2)
+                    {
+                        ans.Add(i + 1);
+                        ans.Add(i - x * y - 1);
+                        if (flag4)
+                        {
+                            ans.Add(i + x);
+                            ans.Add(i + x - 1);
+                            ans.Add(i + x + 1);
+                            ans.Add(i - x * y + x);
+                            ans.Add(i - x * y + x - 1);
+                            ans.Add(i - x * y + x + 1);
+                            if (flag6)
+                            {
+                                ans.Add(i + x * y);
+                                ans.Add(i + x * y - 1);
+                                ans.Add(i + x * y + 1);
+                                ans.Add(i + x * y + x);
+                                ans.Add(i + x * y + x - 1);
+                                ans.Add(i + x * y + x + 1);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        if (flag4)
+                        {
+                            ans.Add(i + x);
+                            ans.Add(i + x - 1);
+                            if (flag6)
+                            {
+                                ans.Add(i + x * y);
+                                ans.Add(i + x * y - 1);
+                                ans.Add(i + x * y + x);
+                                ans.Add(i + x * y + x - 1);
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    if (flag2)
+                    {
+                        ans.Add(i + 1);
+                        if (flag4)
+                        {
+                            ans.Add(i + x);
+                            ans.Add(i + x - 1);
+                            ans.Add(i + x + 1);
+                            if (flag6)
+                            {
+                                ans.Add(i + x * y);
+                                ans.Add(i + x * y - 1);
+                                ans.Add(i + x * y + 1);
+                                ans.Add(i + x * y + x);
+                                ans.Add(i + x * y + x - 1);
+                                ans.Add(i + x * y + x + 1);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        if (flag4)
+                        {
+                            ans.Add(i + x);
+                            ans.Add(i + x - 1);
+                            if (flag6)
+                            {
+                                ans.Add(i + x * y);
+                                ans.Add(i + x * y - 1);
+                                ans.Add(i + x * y + x);
+                                ans.Add(i + x * y + x - 1);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        else
+        {
+            if (flag3)
+            {
+                ans.Add(i - x);
+                if (flag5)
+                {
+                    ans.Add(i - x * y);
+                    ans.Add(i - x * y - x);
+                    if (flag2)
+                    {
+                        ans.Add(i + 1);
+                        ans.Add(i - x + 1);
+                        ans.Add(i - x * y + 1);
+                        if (flag4)
+                        {
+                            ans.Add(i + x);
+                            ans.Add(i + x + 1);
+                            ans.Add(i - x * y + x);
+                            ans.Add(i - x * y + x + 1);
+                            if (flag6)
+                            {
+                                ans.Add(i + x * y);
+                                ans.Add(i + x * y + 1);
+                                ans.Add(i + x * y - x);
+                                ans.Add(i + x * y - x + 1);
+                                ans.Add(i + x * y + x);
+                                ans.Add(i + x * y + x + 1);
+                            }
+                        }
+                        else
+                        {
+                            if (flag6)
+                            {
+                                ans.Add(i + x * y);
+                                ans.Add(i + x * y + 1);
+                                ans.Add(i + x * y - x);
+                                ans.Add(i + x * y - x + 1);
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    if (flag2)
+                    {
+                        ans.Add(i + 1);
+                        ans.Add(i - x + 1);
+                        if (flag4)
+                        {
+                            ans.Add(i + x);
+                            ans.Add(i + x + 1);
+                            if (flag6)
+                            {
+                                ans.Add(i + x * y);
+                                ans.Add(i + x * y + 1);
+                                ans.Add(i + x * y - x);
+                                ans.Add(i + x * y - x + 1);
+                                ans.Add(i + x * y + x);
+                                ans.Add(i + x * y + x + 1);
+                            }
+                        }
+                        else
+                        {
+                            if (flag6)
+                            {
+                                ans.Add(i + x * y);
+                                ans.Add(i + x * y + 1);
+                                ans.Add(i + x * y - x);
+                                ans.Add(i + x * y - x + 1);
+                            }
+                        }
+                    }
+                }
+            }
+            else
+            {
+                if (flag5)
+                {
+                    ans.Add(i - x * y);
+                    if (flag2)
+                    {
+                        ans.Add(i + 1);
+                        ans.Add(i - x * y + 1);
+                        if (flag4)
+                        {
+                            ans.Add(i + x);
+                            ans.Add(i + x + 1);
+                            ans.Add(i - x * y + x);
+                            ans.Add(i - x * y + x + 1);
+                            if (flag6)
+                            {
+                                ans.Add(i + x * y);
+                                ans.Add(i + x * y + 1);
+                                ans.Add(i + x * y + x);
+                                ans.Add(i + x * y + x + 1);
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    if (flag2)
+                    {
+                        ans.Add(i + 1);
+                        if (flag4)
+                        {
+                            ans.Add(i + x);
+                            ans.Add(i + x + 1);
+                            if (flag6)
+                            {
+                                ans.Add(i + x * y);
+                                ans.Add(i + x * y + 1);
+                                ans.Add(i + x * y + x);
+                                ans.Add(i + x * y + x + 1);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return ans;
     }
 
     //不完全コレスキー分解付き共役勾配法
@@ -201,25 +612,27 @@ public class Skipping_Stones_Simulation : MonoBehaviour
     //最初一回だけ呼び出される関数
     void Start()
     {
+        var sw = new System.Diagnostics.Stopwatch();
+        sw.Start();
         //等間隔で粒子を配置していく(隙間はなし、体心立方格子みたいな感じ)
         //(x,y,z)で粒子の中心座標を示す
         //半径0.05f
         //xの範囲
-        for (var x = -2; x < 3; x++)
+        for (var x = -4; x < 5; x++)
         {
             //yの範囲
-            for (var y = 0; y < 4; y++)
+            for (var y = 0; y < 7; y++)
             {
                 //zの範囲
-                for (var z = -2; z < 3; z++)
+                for (var z = -4; z < 5; z++)
                 {
                     //モデル粒子を(x,y,z)の点に回転なしで作成
-                    Instantiate(particle, new Vector3(0.1f * x, 0.1f * y, 0.1f * z), Quaternion.identity);
+                    Instantiate(particle, new Vector3(diameter * x, diameter * y, diameter * z), Quaternion.identity);
 
                     particle.transform.parent = this.transform;
 
                     //それぞれのリストの初期化
-                    position_l.Add(new Vector3(0.1f * x, 0.1f * y, 0.1f * z));
+                    position_l.Add(new Vector3(diameter * x, diameter * y, diameter * z));
                     velocity_l.Add(new Vector3(0f, 0f, 0f));
                     n_l.Add(0);
 
@@ -229,96 +642,20 @@ public class Skipping_Stones_Simulation : MonoBehaviour
             }
         }
 
-        /*
-        for (var x = -4; x < -2; x++)
-        {
-            for (var y = 0; y < 4; y++)
-            {
-                for (var z = -4; z < 5; z++)
-                {
-                    Instantiate(particle_wall, new Vector3(0.1f * x, 0.1f * y, 0.1f * z), Quaternion.identity);
-
-                    //床粒子のもきちんと加えておこう
-                    position_l.Add(new Vector3(0.1f * x, 0.1f * y, 0.1f * z));
-                    velocity_l.Add(new Vector3(0f, 0f, 0f));
-                    n_l.Add(0);
-
-                    //粒子数のカウント
-                    add_cnt++;
-                }
-            }
-        }
-        
-        for (var x = 3; x < 5; x++)
-        {
-            for (var y = 0; y < 4; y++)
-            {
-                for (var z = -4; z < 5; z++)
-                {
-                    Instantiate(particle_wall, new Vector3(0.1f * x, 0.1f * y, 0.1f * z), Quaternion.identity);
-
-                    //床粒子のもきちんと加えておこう
-                    position_l.Add(new Vector3(0.1f * x, 0.1f * y, 0.1f * z));
-                    velocity_l.Add(new Vector3(0f, 0f, 0f));
-                    n_l.Add(0);
-
-                    //粒子数のカウント
-                    add_cnt++;
-                }
-            }
-        }
-        for (var x = -2; x < 3; x++)
-        {
-            for (var y = 0; y < 4; y++)
-            {
-                for (var z = -4; z < -2; z++)
-                {
-                    Instantiate(particle_wall, new Vector3(0.1f * x, 0.1f * y, 0.1f * z), Quaternion.identity);
-
-                    //床粒子のもきちんと加えておこう
-                    position_l.Add(new Vector3(0.1f * x, 0.1f * y, 0.1f * z));
-                    velocity_l.Add(new Vector3(0f, 0f, 0f));
-                    n_l.Add(0);
-
-                    //粒子数のカウント
-                    add_cnt++;
-                }
-            }
-        }
-        for (var x = -2; x < 3; x++)
-        {
-            for (var y = 0; y < 4; y++)
-            {
-                for (var z = 3; z < -5; z++)
-                {
-                    Instantiate(particle_wall, new Vector3(0.1f * x, 0.1f * y, 0.1f * z), Quaternion.identity);
-
-                    //床粒子のもきちんと加えておこう
-                    position_l.Add(new Vector3(0.1f * x, 0.1f * y, 0.1f * z));
-                    velocity_l.Add(new Vector3(0f, 0f, 0f));
-                    n_l.Add(0);
-
-                    //粒子数のカウント
-                    add_cnt++;
-                }
-            }
-        }
-        */
-
         //粒子で床を作ろう
         //等間隔で平たく作っていく
         //厚さは影響半径よりも大きくなるようにする
         //上と同様の考え方で
-        for (var x = -4; x < 5; x++)
+        for (var x = -8; x < 9; x++)
         {
             for (var y = -3; y < 0; y++)
             {
-                for (var z = -4; z < 5; z++)
+                for (var z = -8; z < 9; z++)
                 {
-                    Instantiate(particle_wall, new Vector3(0.1f * x, 0.1f * y, 0.1f * z), Quaternion.identity);
+                    Instantiate(particle_wall, new Vector3(diameter * x, diameter * y, diameter * z), Quaternion.identity);
 
                     //床粒子のもきちんと加えておこう
-                    position_l.Add(new Vector3(0.1f * x, 0.1f * y, 0.1f * z));
+                    position_l.Add(new Vector3(diameter * x, diameter * y, diameter * z));
                     velocity_l.Add(new Vector3(0f, 0f, 0f));
                     n_l.Add(0);
 
@@ -328,33 +665,61 @@ public class Skipping_Stones_Simulation : MonoBehaviour
             }
         }
 
+        //グリッドに分割する空間の範囲の決定
+        x_begin = -1;
+        x_end = x_begin + r_e * keisu;
+        y_begin = -0.5f;
+        y_end = y_begin + r_e * keisu / 2;
+        z_begin = -1;
+        z_end = z_begin + r_e * keisu;
+
+        List<List<int>> grid_table = new List<List<int>>();
+        int num_grid = keisu * keisu * keisu / 2;
+        for (int i = 0; i < num_grid; i++)
+        {
+            grid_table.Add(new List<int>());
+        }
+        int[] index_table = new int[cnt + add_cnt];
+        sort_gird(grid_table, index_table, position_l, x_begin, x_end, y_begin, y_end, z_begin, z_end, r_e, cnt + add_cnt);
 
         //λは使いまわせるからここで計算してしまおう
         //λを表す分数の分子の定義(λ=n/d)、d=n0
         float n = 0f;
 
-        //Σi≠j(i=52)
-        float xi_x = position_l[52].x;
-        float xi_y = position_l[52].y;
-        float xi_z = position_l[52].z;
-        for (int j = 0; j < cnt; j++)
+        for (int i = 0; i < cnt; i++)
         {
-            //粒子xjの座標の取得
-            if (52 == j) continue;
-            float xj_x = position_l[j].x;
-            float xj_y = position_l[j].y;
-            float xj_z = position_l[j].z;
+            float xi_x = position_l[i].x;
+            float xi_y = position_l[i].y;
+            float xi_z = position_l[i].z;
+            if (xi_x <= -0.2f + 1 * r_e | xi_x >= 0.2f - 1 * r_e) continue;
+            if (xi_y <= 0 + 1 * r_e | xi_y >= 0.3f - 1 * r_e) continue;
+            if (xi_z <= -0.2f + 1 * r_e | xi_z >= 0.2f - 1 * r_e) continue;
+            List<int> roop = search_grid(index_table[i], keisu, keisu, keisu);
+            foreach (int j in roop)
+            {
+                foreach (int k in grid_table[j])
+                {
+                    //粒子xjの座標の取得
+                    if (i == k) continue;
+                    float xj_x = position_l[k].x;
+                    float xj_y = position_l[k].y;
+                    float xj_z = position_l[k].z;
 
-            //n0(λの分母d)に関する計算
-            n0 += W(xi_x, xi_y, xi_z, xj_x, xj_y, xj_z);
+                    //n0(λの分母d)に関する計算
+                    n0 += W(xi_x, xi_y, xi_z, xj_x, xj_y, xj_z);
 
-            //λに関する計算
-            //分子nについての計算
-            n += (Pow2(xj_x - xi_x) + Pow2(xj_y - xi_y) + Pow2(xj_z - xi_z)) * W(xi_x, xi_y, xi_z, xj_x, xj_y, xj_z);
+                    //λに関する計算
+                    //分子nについての計算
+                    n += (Pow2(xj_x - xi_x) + Pow2(xj_y - xi_y) + Pow2(xj_z - xi_z)) * W(xi_x, xi_y, xi_z, xj_x, xj_y, xj_z);
 
+                }
+            }
+            break;
         }
+
         //λの算出
         lambda = n / n0;
+        //Debug.Log(lambda + " " + n0 + " " + n);
 
         //壁内部粒子のインデックスの列挙
         //各粒子に対して計算
@@ -364,9 +729,9 @@ public class Skipping_Stones_Simulation : MonoBehaviour
             float ni = 0f;
 
             //粒子xiの座標の取得
-            xi_x = position_l[cnt + i].x;
-            xi_y = position_l[cnt + i].y;
-            xi_z = position_l[cnt + i].z;
+            float xi_x = position_l[cnt + i].x;
+            float xi_y = position_l[cnt + i].y;
+            float xi_z = position_l[cnt + i].z;
 
             //Σi≠j
             for (int j = 0; j < add_cnt; j++)
@@ -388,13 +753,27 @@ public class Skipping_Stones_Simulation : MonoBehaviour
                 //Debug.Log(cnt + i);
             }
         }
+        sw.Stop();
+        TimeSpan ts = sw.Elapsed;
+        Debug.Log($"　{sw.ElapsedMilliseconds}ミリ秒");
     }
 
     //物理演算
     //0.02秒毎に呼び出す
     void FixedUpdate()
     {
+        var sw = new System.Diagnostics.Stopwatch();
+        sw.Start();
         roop_cnt++;
+        List<List<int>> grid_table = new List<List<int>>();
+        int num_grid = keisu * keisu * keisu / 2;
+        for (int i = 0; i < num_grid; i++)
+        {
+            grid_table.Add(new List<int>());
+        }
+        int[] index_table = new int[cnt + add_cnt];
+        sort_gird(grid_table, index_table, position_l, x_begin, x_end, y_begin, y_end, z_begin, z_end, r_e, cnt + add_cnt);
+
         //密度と粘度の取得
         float density = densities[temperature - 5];
         float viscosity = viscosities[temperature - 5];
@@ -418,24 +797,27 @@ public class Skipping_Stones_Simulation : MonoBehaviour
             float xi_vy = velocity_l[i].y;
             float xi_vz = velocity_l[i].z;
 
-            //Σi≠j
-            for (int j = 0; j < cnt + add_cnt; j++)
+            List<int> roop = search_grid(index_table[i], keisu, keisu / 2, keisu);
+            foreach (int j in roop)
             {
-                //粒子xjの座標の取得
-                if (i == j) continue;
-                float xj_x = position_l[j].x;
-                float xj_y = position_l[j].y;
-                float xj_z = position_l[j].z;
+                foreach (int k in grid_table[j])
+                {
+                    //粒子xjの座標の取得
+                    if (i == k) continue;
+                    float xj_x = position_l[k].x;
+                    float xj_y = position_l[k].y;
+                    float xj_z = position_l[k].z;
 
-                //粒子xjの速度の取得
-                float xj_vx = velocity_l[j].x;
-                float xj_vy = velocity_l[j].y;
-                float xj_vz = velocity_l[j].z;
+                    //粒子xjの速度の取得
+                    float xj_vx = velocity_l[k].x;
+                    float xj_vy = velocity_l[k].y;
+                    float xj_vz = velocity_l[k].z;
 
-                //Σの計算
-                sigma_x += (xj_vx - xi_vx) * W(xi_x, xi_y, xi_z, xj_x, xj_y, xj_z);
-                sigma_y += (xj_vy - xi_vy) * W(xi_x, xi_y, xi_z, xj_x, xj_y, xj_z);
-                sigma_z += (xj_vz - xi_vz) * W(xi_x, xi_y, xi_z, xj_x, xj_y, xj_z);
+                    //Σの計算
+                    sigma_x += (xj_vx - xi_vx) * W(xi_x, xi_y, xi_z, xj_x, xj_y, xj_z);
+                    sigma_y += (xj_vy - xi_vy) * W(xi_x, xi_y, xi_z, xj_x, xj_y, xj_z);
+                    sigma_z += (xj_vz - xi_vz) * W(xi_x, xi_y, xi_z, xj_x, xj_y, xj_z);
+                }
             }
 
             //粘性項の算出(d = 3)
@@ -457,7 +839,73 @@ public class Skipping_Stones_Simulation : MonoBehaviour
             float x_temporary = position_l[i].x + 0.02f * vx_temporary;
             float y_temporary = position_l[i].y + 0.02f * vy_temporary;
             float z_temporary = position_l[i].z + 0.02f * vz_temporary;
+            //Debug.Log(velocity_l[i].x + " " + velocity_l[i].y + " " + velocity_l[i].z);
             position_l[i] = new Vector3(x_temporary, y_temporary, z_temporary);
+        }
+
+        grid_table = new List<List<int>>();
+        for (int i = 0; i < num_grid; i++)
+        {
+            grid_table.Add(new List<int>());
+        }
+        sort_gird(grid_table, index_table, position_l, x_begin, x_end, y_begin, y_end, z_begin, z_end, r_e, cnt + add_cnt);
+        //衝突係数の定義
+        float e = 0.2f;
+        //斥力を与える範囲
+        float rec = r_e / 2;
+        //各粒子に対して計算
+        for (int i = 0; i < cnt; i++)
+        {
+            //粒子xiの座標の取得
+            float xi_x = position_l[i].x;
+            float xi_y = position_l[i].y;
+            float xi_z = position_l[i].z;
+
+            //粒子xiの速度の取得
+            float xi_vx = velocity_l[i].x;
+            float xi_vy = velocity_l[i].y;
+            float xi_vz = velocity_l[i].z;
+
+            List<int> roop = search_grid(index_table[i], keisu, keisu, keisu);
+            foreach (int j in roop)
+            {
+                foreach (int k in grid_table[j])
+                {
+                    //粒子xjの座標の取得
+                    if (i == k) continue;
+                    float xj_x = position_l[k].x;
+                    float xj_y = position_l[k].y;
+                    float xj_z = position_l[k].z;
+
+                    if (distance(xi_x, xi_y, xi_z, xj_x, xj_y, xj_z) > rec) continue;
+
+                    //粒子xjの速度の取得
+                    float xj_vx = velocity_l[k].x;
+                    float xj_vy = velocity_l[k].y;
+                    float xj_vz = velocity_l[k].z;
+
+                    float ux_ij = xj_vx - xi_vx;
+                    float uy_ij = xj_vy - xi_vy;
+                    float uz_ij = xj_vz - xj_vz;
+                    if (ux_ij == 0 & uy_ij == 0 & uz_ij == 0) continue;
+                    float abs_u = distance(ux_ij, uy_ij, uz_ij, 0, 0, 0);
+                    float nx_ij = ux_ij / abs_u;
+                    float ny_ij = uy_ij / abs_u;
+                    float nz_ij = uz_ij / abs_u;
+
+                    float xic, yic, zic, xjc, yjc, zjc;
+                    xic = xi_vx + nx_ij * (ux_ij * nx_ij + uy_ij * ny_ij + uz_ij * nz_ij) * (1 + e) / 2;
+                    yic = xi_vy + ny_ij * (ux_ij * nx_ij + uy_ij * ny_ij + uz_ij * nz_ij) * (1 + e) / 2;
+                    zic = xi_vz + nz_ij * (ux_ij * nx_ij + uy_ij * ny_ij + uz_ij * nz_ij) * (1 + e) / 2;
+                    xjc = xj_vx - nx_ij * (ux_ij * nx_ij + uy_ij * ny_ij + uz_ij * nz_ij) * (1 + e) / 2;
+                    yjc = xj_vy - ny_ij * (ux_ij * nx_ij + uy_ij * ny_ij + uz_ij * nz_ij) * (1 + e) / 2;
+                    zjc = xj_vz - nz_ij * (ux_ij * nx_ij + uy_ij * ny_ij + uz_ij * nz_ij) * (1 + e) / 2;
+
+                    velocity_l[i] = new Vector3(xic, yic, zic);
+                    //Debug.Log(abs_u);
+                    velocity_l[k] = new Vector3(xjc, yjc, zjc);
+                }
+            }
         }
 
         //仮位置における粒子数密度nの算出
@@ -472,17 +920,20 @@ public class Skipping_Stones_Simulation : MonoBehaviour
             float xi_y = position_l[i].y;
             float xi_z = position_l[i].z;
 
-            //Σi≠j
-            for (int j = 0; j < cnt + add_cnt; j++)
+            List<int> roop = search_grid(index_table[i], keisu, keisu, keisu);
+            foreach (int j in roop)
             {
-                //粒子xjの座標の取得
-                if (i == j) continue;
-                float xj_x = position_l[j].x;
-                float xj_y = position_l[j].y;
-                float xj_z = position_l[j].z;
+                foreach (int k in grid_table[j])
+                {
+                    //粒子xjの座標の取得
+                    if (i == k) continue;
+                    float xj_x = position_l[k].x;
+                    float xj_y = position_l[k].y;
+                    float xj_z = position_l[k].z;
 
-                //nに関する計算
-                n += W(xi_x, xi_y, xi_z, xj_x, xj_y, xj_z);
+                    //nに関する計算
+                    n += W(xi_x, xi_y, xi_z, xj_x, xj_y, xj_z);
+                }
             }
             //計算結果をリストに保存
             n_l[i] = n;
@@ -499,16 +950,7 @@ public class Skipping_Stones_Simulation : MonoBehaviour
             all_inner.Add(i, A_size);
             A_size++;
         }
-        //デバッグ用]
-        /*
-        foreach (int key in all_inner.Keys)
-        {
-            Debug.Log(key + " " + all_inner[key]);
-        }
-        //*/
 
-        //圧力pについてのポアソン方程式を解く
-        //係数行列Aの定義(ジャグ配列)
         float[][] A = new float[A_size][];
         for (int i = 0; i < cnt + add_cnt; i++)
         {
@@ -521,36 +963,28 @@ public class Skipping_Stones_Simulation : MonoBehaviour
 
             //係数行列の初期化
             A[all_inner[i]] = new float[A_size];
-            for (int j = 0; j < cnt + add_cnt; j++)
+
+            List<int> roop = search_grid(index_table[i], keisu, keisu, keisu);
+            foreach (int j in roop)
             {
-                //Σi≠j
-                if (i == j) continue;
-
-                //粒子xjの座標の取得
-                float xj_x = position_l[j].x;
-                float xj_y = position_l[j].y;
-                float xj_z = position_l[j].z;
-
-                A[all_inner[i]][all_inner[i]] -= W(xi_x, xi_y, xi_z, xj_x, xj_y, xj_z);
-
-                //ディリクレ境界条件
-                if (all_inner.ContainsKey(j))
+                foreach (int k in grid_table[j])
                 {
-                    A[all_inner[i]][all_inner[j]] = W(xi_x, xi_y, xi_z, xj_x, xj_y, xj_z);
+                    //粒子xjの座標の取得
+                    if (i == k) continue;
+                    float xj_x = position_l[k].x;
+                    float xj_y = position_l[k].y;
+                    float xj_z = position_l[k].z;
+
+                    A[all_inner[i]][all_inner[i]] -= W(xi_x, xi_y, xi_z, xj_x, xj_y, xj_z);
+
+                    //ディリクレ境界条件
+                    if (all_inner.ContainsKey(k))
+                    {
+                        A[all_inner[i]][all_inner[k]] = W(xi_x, xi_y, xi_z, xj_x, xj_y, xj_z);
+                    }
                 }
             }
         }
-
-        //デバッグ用
-        /*
-        for (int i = 0; i < A_size; i++)
-        {
-            for (int j = 0; j < A_size; j++)
-            {
-                Debug.Log(A[i][j] + " " + i + " " + j);
-            }
-        }
-        //*/
 
         //結果ベクトルの定義
         float[] pressure_l = new float[A_size];
@@ -569,14 +1003,6 @@ public class Skipping_Stones_Simulation : MonoBehaviour
 
         //不完全コレスキー分解付き共役勾配法を用いてこの方程式を解く
         ICCGSolver(A, b, pressure_l, A_size, 10000, 0.001f);
-
-        //デバッグ用
-        /*
-        for (int i = 0; i < A_size; i++)
-        {
-            Debug.Log(pressure_l[i]);
-        }
-        //*/
 
         //求めた圧力から正しい速度と位置を得る
         //各粒子について更新
@@ -605,57 +1031,66 @@ public class Skipping_Stones_Simulation : MonoBehaviour
 
             //p_caretを求める
             float p_caret = 1000000;
-            for (int j = 0; j < cnt + add_cnt; j++)
+            List<int> roop = search_grid(index_table[i], keisu, keisu, keisu);
+            foreach (int j in roop)
             {
-                //粒子xjの座標の取得
-                float xj_x = position_l[j].x;
-                float xj_y = position_l[j].y;
-                float xj_z = position_l[j].z;
-
-                if (distance(xi_x, xi_y, xi_z, xj_x, xj_y, xj_z) > r_e) continue;
-                if (j >= cnt)
+                foreach (int k in grid_table[j])
                 {
-                    if (inner.ContainsKey(j)) continue;
-                }
+                    //粒子xjの座標の取得
+                    if (i == k) continue;
+                    float xj_x = position_l[k].x;
+                    float xj_y = position_l[k].y;
+                    float xj_z = position_l[k].z;
 
-                //ディリクレ境界条件
-                if (!all_inner.ContainsKey(j))
-                {
-                    p_caret = 0;
-                    break;
-                }
-                else
-                {
-                    if (p_caret > pressure_l[all_inner[j]]) p_caret = pressure_l[all_inner[j]];
-                }
+                    if (distance(xi_x, xi_y, xi_z, xj_x, xj_y, xj_z) > r_e) continue;
+                    if (k >= cnt)
+                    {
+                        if (inner.ContainsKey(k)) continue;
+                    }
 
+                    //ディリクレ境界条件
+                    if (!all_inner.ContainsKey(k))
+                    {
+                        p_caret = 0;
+                        break;
+                    }
+                    else
+                    {
+                        if (p_caret > pressure_l[all_inner[k]]) p_caret = pressure_l[all_inner[k]];
+                    }
+                }
             }
 
             //Σi≠j
-            for (int j = 0; j < cnt + add_cnt; j++)
+            List<int> roop2 = search_grid(index_table[i], keisu, keisu, keisu);
+            foreach (int j in roop2)
             {
-                //粒子xjの座標の取得
-                if (i == j) continue;
-                float xj_x = position_l[j].x;
-                float xj_y = position_l[j].y;
-                float xj_z = position_l[j].z;
-
-                //ディリクレ境界条件
-                float xj_p;
-                if (!all_inner.ContainsKey(j))
+                foreach (int k in grid_table[j])
                 {
-                    xj_p = 0;
-                }
-                else
-                {
-                    xj_p = pressure_l[all_inner[j]];
-                }
+                    //粒子xjの座標の取得
+                    if (i == k) continue;
+                    float xj_x = position_l[k].x;
+                    float xj_y = position_l[k].y;
+                    float xj_z = position_l[k].z;
 
-                //圧力の勾配ベクトル
-                np_x += (xj_p - p_caret) * (xj_x - xi_x) * W(xi_x, xi_y, xi_z, xj_x, xj_y, xj_z) / (Pow2(xj_x - xi_x) + Pow2(xj_y - xi_y) + Pow2(xj_z - xi_z));
-                np_y += (xj_p - p_caret) * (xj_y - xi_y) * W(xi_x, xi_y, xi_z, xj_x, xj_y, xj_z) / (Pow2(xj_x - xi_x) + Pow2(xj_y - xi_y) + Pow2(xj_z - xi_z));
-                np_z += (xj_p - p_caret) * (xj_z - xi_z) * W(xi_x, xi_y, xi_z, xj_x, xj_y, xj_z) / (Pow2(xj_x - xi_x) + Pow2(xj_y - xi_y) + Pow2(xj_z - xi_z));
+                    //ディリクレ境界条件
+                    float xj_p;
+                    if (!all_inner.ContainsKey(k))
+                    {
+                        xj_p = 0;
+                    }
+                    else
+                    {
+                        xj_p = pressure_l[all_inner[k]];
+                    }
+
+                    //圧力の勾配ベクトル
+                    np_x += (xj_p - p_caret) * (xj_x - xi_x) * W(xi_x, xi_y, xi_z, xj_x, xj_y, xj_z) / (Pow2(xj_x - xi_x) + Pow2(xj_y - xi_y) + Pow2(xj_z - xi_z));
+                    np_y += (xj_p - p_caret) * (xj_y - xi_y) * W(xi_x, xi_y, xi_z, xj_x, xj_y, xj_z) / (Pow2(xj_x - xi_x) + Pow2(xj_y - xi_y) + Pow2(xj_z - xi_z));
+                    np_z += (xj_p - p_caret) * (xj_z - xi_z) * W(xi_x, xi_y, xi_z, xj_x, xj_y, xj_z) / (Pow2(xj_x - xi_x) + Pow2(xj_y - xi_y) + Pow2(xj_z - xi_z));
+                }
             }
+
             //d=3で計算
             np_x = np_x * 3 / n0;
             np_y = np_y * 3 / n0;
@@ -693,6 +1128,10 @@ public class Skipping_Stones_Simulation : MonoBehaviour
             mytransform.position = pos;
             index++;
         }
+
+        sw.Stop();
+        TimeSpan ts = sw.Elapsed;
+        Debug.Log($"　{sw.ElapsedMilliseconds}ミリ秒");
 
         Debug.Log(roop_cnt);
     }
