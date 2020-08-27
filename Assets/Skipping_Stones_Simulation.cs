@@ -163,7 +163,7 @@ public class Skipping_Stones_Simulation : MonoBehaviour
             int index = x_i + ((int)((x_end - x_begin) / re) + 1) * y_i + ((int)((x_end - x_begin) / re) + 1) * ((int)((y_end - y_begin) / re) + 1) * z_i;
 
             //それぞれのリストの値を更新
-            //Debug.Log(index + " " + x + " " + y + " " + z);
+            Debug.Log(index + " " + x + " " + y + " " + z);
             grid_table[index].Add(i);
             index_table[i] = index;
         }
@@ -646,11 +646,11 @@ public class Skipping_Stones_Simulation : MonoBehaviour
         //等間隔で平たく作っていく
         //厚さは影響半径よりも大きくなるようにする
         //上と同様の考え方で
-        for (var x = -8; x < 9; x++)
+        for (var x = -7; x < 8; x++)
         {
             for (var y = -3; y < 0; y++)
             {
-                for (var z = -8; z < 9; z++)
+                for (var z = -7; z < 8; z++)
                 {
                     Instantiate(particle_wall, new Vector3(diameter * x, diameter * y, diameter * z), Quaternion.identity);
 
@@ -691,9 +691,9 @@ public class Skipping_Stones_Simulation : MonoBehaviour
             float xi_x = position_l[i].x;
             float xi_y = position_l[i].y;
             float xi_z = position_l[i].z;
-            if (xi_x <= -0.2f + 1 * r_e | xi_x >= 0.2f - 1 * r_e) continue;
-            if (xi_y <= 0 + 1 * r_e | xi_y >= 0.3f - 1 * r_e) continue;
-            if (xi_z <= -0.2f + 1 * r_e | xi_z >= 0.2f - 1 * r_e) continue;
+            if (xi_x <= -0.2f + r_e | xi_x >= 0.2f - r_e) continue;
+            if (xi_y >= 0.3f - r_e) continue;
+            if (xi_z <= -0.2f + r_e | xi_z >= 0.2f - r_e) continue;
             List<int> roop = search_grid(index_table[i], keisu, keisu, keisu);
             foreach (int j in roop)
             {
@@ -725,33 +725,16 @@ public class Skipping_Stones_Simulation : MonoBehaviour
         //各粒子に対して計算
         for (int i = 0; i < add_cnt; i++)
         {
-            //粒子数密度n
-            float ni = 0f;
-
             //粒子xiの座標の取得
             float xi_x = position_l[cnt + i].x;
             float xi_y = position_l[cnt + i].y;
             float xi_z = position_l[cnt + i].z;
 
-            //Σi≠j
-            for (int j = 0; j < add_cnt; j++)
-            {
-                //粒子xjの座標の取得
-                if (i == j) continue;
-                float xj_x = position_l[cnt + j].x;
-                float xj_y = position_l[cnt + j].y;
-                float xj_z = position_l[cnt + j].z;
+            if (xi_x >= -0.25f | xi_x <= 0.25f) continue;
+            if (xi_y >= -0.05f) continue;
+            if (xi_z >= -0.25f | xi_z <= 0.25f) continue;
 
-                //nに関する計算
-                ni += W(xi_x, xi_y, xi_z, xj_x, xj_y, xj_z);
-            }
-            //計算結果をリストに保存
-            //内部粒子かどうかの判定
-            if (ni >= n0 * alpha)
-            {
-                inner.Add(cnt + i, 0);
-                //Debug.Log(cnt + i);
-            }
+            inner.Add(cnt + i, 0);
         }
         sw.Stop();
         TimeSpan ts = sw.Elapsed;
@@ -779,7 +762,7 @@ public class Skipping_Stones_Simulation : MonoBehaviour
         float viscosity = viscosities[temperature - 5];
 
         //各粒子に対して計算
-        for (int i = 0; i < cnt + add_cnt; i++)
+        for (int i = 0; i < cnt; i++)
         {
             //粘性項を離散化したときに出てくるΣ
             //各軸ごとに計算するので3つ
@@ -825,8 +808,6 @@ public class Skipping_Stones_Simulation : MonoBehaviour
             float viscosity_y = 2 * 3 * sigma_y / lambda / n0;
             float viscosity_z = 2 * 3 * sigma_z / lambda / n0;
 
-            if (i >= cnt) continue;
-
             //速度と位置の更新(仮)
             //漸化式に倣って更新していく(Δt = 0.02, g = -9.81)
             //速度の更新(仮)
@@ -852,7 +833,7 @@ public class Skipping_Stones_Simulation : MonoBehaviour
         //衝突係数の定義
         float e = 0.2f;
         //斥力を与える範囲
-        float rec = r_e / 2;
+        float rec = r_e * 0.5f;
         //各粒子に対して計算
         for (int i = 0; i < cnt; i++)
         {
@@ -963,6 +944,10 @@ public class Skipping_Stones_Simulation : MonoBehaviour
 
             //係数行列の初期化
             A[all_inner[i]] = new float[A_size];
+
+            //音速を由来とする物理量α
+            float a = 0.1f * 0.1f * 0.1f * 0.1f * 0.1f * 0.1f * 0.1f * 0.1f * 0.1f * 0.1f * 0.1f * 0.1f;
+            A[all_inner[i]][all_inner[i]] -= density * a / 0.02f / 0.02f;
 
             List<int> roop = search_grid(index_table[i], keisu, keisu, keisu);
             foreach (int j in roop)

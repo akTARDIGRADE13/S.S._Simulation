@@ -235,7 +235,7 @@ MonoBehaviour:
   particle: {fileID: 878793007}
   particle_wall: {fileID: 1011545930}
   temperature: 5
-  r_e: 0.126
+  r_e: 0.1251
   diameter: 0.05
 --- !u!1 &747100211
 GameObject:
